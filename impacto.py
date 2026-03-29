@@ -20,7 +20,7 @@ def main():
         with st.expander("Propiedades de la Viga", expanded=True):
             L = st.number_input("Luz de la viga (L) [cm]:", value=300.0, step=10.0)
             E = st.number_input("Módulo de Elasticidad (E) [kgf/cm²]:", value=2.1e6, format="%.1e")
-            Jx = st.number_input("Inercia de la sección (Jx) [cm⁴]:", value=5500.0, step=100.0)
+            Jx = st.number_input("Inercia de la sección (Ixx) [cm⁴]:", value=5500.0, step=100.0)
             Wx = st.number_input("Módulo de sección (Wx) [cm³]:", value=407.0, step=10.0)
 
         with st.expander("Condiciones de Impacto", expanded=True):
