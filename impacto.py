@@ -7,7 +7,7 @@ import os
 st.set_page_config(page_title="Structural Lab | Análisis de Impacto", layout="wide")
 
 def main():
-    st.title("🔨 ANÁLISIS DE IMPACTO EN VIGAS DE ACERO")
+    st.title("🔨 ANÁLISIS DE IMPACTO EN VIGAS")
     st.markdown("Cálculo de factores dinámicos y tensiones por caída de carga.")
     st.markdown("---")
 
