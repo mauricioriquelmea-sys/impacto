@@ -50,23 +50,27 @@ def main():
         # --- PARTE SUPERIOR: ESQUEMA TÉCNICO ---
         img_path = "F1.jpg"
         if os.path.exists(img_path):
-            st.image(img_path, caption="Esquema: Carga Q en caída libre sobre centro de luz", use_container_width=True)
+            st.image(img_path, caption="Referencia: Modelo de impacto de masa puntual", use_container_width=True)
+            
+            # --- BLOQUE DE ECUACIONES DE DISEÑO ---
+            st.markdown("### 📑 Fundamentos Matemáticos")
+            st.latex(r"y_{est} = \frac{Q \cdot L^3}{48 \cdot E \cdot I_{xx}} \quad \text{(Flecha Estática)}")
+            st.latex(r"K_{din} = 1 + \sqrt{1 + \frac{2 \cdot h}{y_{est}}} \quad \text{(Factor de Impacto)}")
+            st.latex(r"\sigma_{din} = \sigma_{est} \cdot K_{din} \quad \text{(Tensión de Diseño)}")
+            st.info("Nota: El modelo asume conservación de energía y comportamiento elástico lineal del material.")
         
         st.markdown("---")
         st.info("📊 Sensibilidad: Incremento de Carga vs Altura")
 
         # --- GENERACIÓN DEL GRÁFICO DE IMPACTO ---
-        # Rango de alturas de impacto de 0 a h*2 (o 50cm mínimo)
         h_max = max(h_input * 2.5, 30.0)
         h_range = np.linspace(0.001, h_max, 100)
         
-        # Función de incremento
+        # Recalcular para el gráfico
         k_range = 1 + np.sqrt(1 + (2 * h_range / y_est))
         sigma_range = sigma_est * k_range
 
         fig, ax1 = plt.subplots(figsize=(8, 5))
-
-        # Eje para Factor Dinámico
         color = 'tab:blue'
         ax1.set_xlabel('Altura de Impacto h [cm]', fontweight='bold')
         ax1.set_ylabel('Factor Dinámico Kdin', color=color, fontweight='bold')
@@ -74,7 +78,6 @@ def main():
         ax1.tick_params(axis='y', labelcolor=color)
         ax1.grid(True, alpha=0.3, ls=':')
 
-        # Eje para Tensión Dinámica (Secundario)
         ax2 = ax1.twinx()
         color = 'tab:red'
         ax2.set_ylabel('Tensión Dinámica σdin [kgf/cm²]', color=color, fontweight='bold')
@@ -83,8 +86,7 @@ def main():
 
         # Punto de operación actual
         ax1.plot(h_input, k_din_actual, 'ko', markersize=8, label='Punto de Diseño')
-        ax1.annotate(f'h={h_input}cm', (h_input, k_din_actual), xytext=(5, 5), textcoords='offset points')
-
+        
         plt.title(f"Comportamiento Dinámico para Q = {Q} kgf", fontsize=12, fontweight='bold')
         fig.tight_layout()
         st.pyplot(fig)
