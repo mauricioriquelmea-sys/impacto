@@ -1,17 +1,16 @@
 import streamlit as st
 import numpy as np
-from PIL import Image
+import matplotlib.pyplot as plt
 import os
 
-# Configuración de Nivel Élite para Structural Lab
-st.set_page_config(page_title="Structural Lab | Análisis de Impacto", layout="wide")
+# 1. CONFIGURACIÓN ESTRUCTURAL LAB
+st.set_page_config(page_title="Structural Lab | Análisis de Impacto", layout="wide", page_icon="🔨")
 
 def main():
     st.title("🔨 ANÁLISIS DE IMPACTO EN VIGAS")
-    st.markdown("Cálculo de factores dinámicos y tensiones por caída de carga.")
+    st.caption("Director de Proyectos Estructurales EIRL | Algorithm-Aided Engineering")
     st.markdown("---")
 
-    # Layout de dos columnas estilo ForkLoadsWeb.py
     col1, col2 = st.columns([1, 1.2])
 
     with col1:
@@ -25,48 +24,70 @@ def main():
 
         with st.expander("Condiciones de Impacto", expanded=True):
             Q = st.number_input("Peso de la carga (Q) [kgf]:", value=100.0, step=10.0)
-            h = st.number_input("Altura de caída (h) [cm]:", value=10.0, step=1.0)
+            h_input = st.number_input("Altura de caída (h) [cm]:", value=10.0, step=1.0)
 
-        if st.button("CALCULAR IMPACTO", type="primary"):
-            # 1. Flecha Estática (Carga puntual al centro)
-            y_est = (Q * L**3) / (48 * E * Jx)
+        # CÁLCULOS BASE
+        y_est = (Q * L**3) / (48 * E * Jx)
+        m_flec = (Q * L) / 4
+        sigma_est = m_flec / Wx
+        
+        # Factor Dinámico Real
+        k_din_actual = 1 + np.sqrt(1 + (2 * h_input / y_est))
+        sigma_din_actual = sigma_est * k_din_actual
 
-            # 2. Coeficiente Dinámico (Kdin)
-            # Kdin = 1 + sqrt(1 + (2h / y_est))
-            k_din = 1 + np.sqrt(1 + (2 * h / y_est))
+        st.markdown("---")
+        st.success("### Resultados del Análisis")
+        res_1, res_2 = st.columns(2)
+        res_1.metric("Flecha Estática ($y_{est}$)", f"{y_est:.4f} cm")
+        res_2.metric("Coef. Dinámico ($K_{din}$)", f"{k_din_actual:.2f}")
+        
+        st.metric("Tensión Dinámica ($\sigma_{din}$)", f"{sigma_din_actual:,.1f} kgf/cm²")
 
-            # 3. Tensiones (Estática vs Dinámica)
-            m_flec = (Q * L) / 4
-            sigma_est = m_flec / Wx
-            sigma_din = sigma_est * k_din
-
-            # --- PRESENTACIÓN DE RESULTADOS ---
-            st.markdown("---")
-            st.success("### Resultados del Análisis")
-            
-            res_1, res_2 = st.columns(2)
-            res_1.metric("Flecha Estática ($y_{est}$)", f"{y_est:.4f} cm")
-            res_2.metric("Coef. Dinámico ($K_{din}$)", f"{k_din:.2f}")
-            
-            res_3, res_4 = st.columns(2)
-            res_3.metric("Tensión Estática ($\sigma_{est}$)", f"{sigma_est:.1f} kgf/cm²")
-            res_4.metric("Tensión Dinámica ($\sigma_{din}$)", f"{sigma_din:,.1f} kgf/cm²")
-
-            if sigma_din > 1400: # Límite de fluencia referencial
-                st.error("❌ LA TENSIÓN DINÁMICA SUPERA EL LÍMITE ADMISIBLE")
-            else:
-                st.info("✅ Tensión dinámica dentro de rangos operativos")
+        if sigma_din_actual > 1400:
+            st.error("⚠️ CRÍTICO: Supera límite elástico admisible")
 
     with col2:
-        st.info("💡 Esquema de Carga en Movimiento")
-        
-        # Carga exclusiva de F1.jpg
+        # --- PARTE SUPERIOR: ESQUEMA TÉCNICO ---
         img_path = "F1.jpg"
         if os.path.exists(img_path):
-            st.image(img_path, caption="Referencia: Carga Q cayendo desde altura h sobre viga simplemente apoyada")
-        else:
-            st.warning(f"⚠️ Archivo '{img_path}' no encontrado en el directorio.")
-            st.info("Para visualizar el esquema, sube la imagen con el nombre exacto 'F1.jpg'.")
+            st.image(img_path, caption="Esquema: Carga Q en caída libre sobre centro de luz", use_container_width=True)
+        
+        st.markdown("---")
+        st.info("📊 Sensibilidad: Incremento de Carga vs Altura")
+
+        # --- GENERACIÓN DEL GRÁFICO DE IMPACTO ---
+        # Rango de alturas de impacto de 0 a h*2 (o 50cm mínimo)
+        h_max = max(h_input * 2.5, 30.0)
+        h_range = np.linspace(0.001, h_max, 100)
+        
+        # Función de incremento
+        k_range = 1 + np.sqrt(1 + (2 * h_range / y_est))
+        sigma_range = sigma_est * k_range
+
+        fig, ax1 = plt.subplots(figsize=(8, 5))
+
+        # Eje para Factor Dinámico
+        color = 'tab:blue'
+        ax1.set_xlabel('Altura de Impacto h [cm]', fontweight='bold')
+        ax1.set_ylabel('Factor Dinámico Kdin', color=color, fontweight='bold')
+        ax1.plot(h_range, k_range, color=color, lw=2, label='Evolución Kdin')
+        ax1.tick_params(axis='y', labelcolor=color)
+        ax1.grid(True, alpha=0.3, ls=':')
+
+        # Eje para Tensión Dinámica (Secundario)
+        ax2 = ax1.twinx()
+        color = 'tab:red'
+        ax2.set_ylabel('Tensión Dinámica σdin [kgf/cm²]', color=color, fontweight='bold')
+        ax2.plot(h_range, sigma_range, color=color, ls='--', lw=2, label='Evolución σdin')
+        ax2.tick_params(axis='y', labelcolor=color)
+
+        # Punto de operación actual
+        ax1.plot(h_input, k_din_actual, 'ko', markersize=8, label='Punto de Diseño')
+        ax1.annotate(f'h={h_input}cm', (h_input, k_din_actual), xytext=(5, 5), textcoords='offset points')
+
+        plt.title(f"Comportamiento Dinámico para Q = {Q} kgf", fontsize=12, fontweight='bold')
+        fig.tight_layout()
+        st.pyplot(fig)
 
 if __name__ == "__main__":
     main()
